@@ -1,0 +1,3 @@
+mysql/prisma/migrations
+mysql/node_modules
+mysql/package*.json

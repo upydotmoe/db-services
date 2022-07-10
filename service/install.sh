@@ -12,8 +12,15 @@ sleep 10
 
 # migrate database schema
 cd mysql
+
 rm -rf prisma/migrations
+cp .env.db.root .env
+npx prisma migrate dev --name init
+
+rm .env
+cp .env.db.upy .env
 npx prisma migrate deploy
+
 # npx prisma db seed
 sleep 5
 
