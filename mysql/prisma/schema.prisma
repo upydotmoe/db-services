@@ -1,0 +1,476 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model album_has_artworks {
+  album_id   Int      @db.UnsignedInt
+  work_id    Int      @db.UnsignedInt
+  created_at DateTime @default(now()) @db.DateTime(0)
+  albums     albums   @relation(fields: [album_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_album_has_artworks_albums")
+  artworks   artworks @relation(fields: [work_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_album_has_artworks_artworks")
+
+  @@unique([album_id, work_id], map: "album_id_work_id")
+  @@index([work_id], map: "FK_album_has_artworks_artworks")
+}
+
+model albums {
+  id                 Int                  @id @default(autoincrement()) @db.UnsignedInt
+  user_id            Int                  @db.UnsignedInt
+  name               String               @db.VarChar(100)
+  type               album_types          @default(artwork)
+  description        String?              @db.Text
+  is_public          Int                  @default(1)
+  created_at         DateTime             @default(now()) @db.DateTime(0)
+  users              users                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_albums_users")
+  album_has_artworks album_has_artworks[]
+
+  @@index([user_id], map: "FK_albums_users")
+}
+
+model artwork_assets {
+  work_id    Int      @db.UnsignedInt
+  name       String   @db.VarChar(100)
+  driver     String   @default("backblaze")
+  bucket     String
+  b2_file_id String?  @db.VarChar(100)
+  filename   String
+  file_order Int?
+  artworks   artworks @relation(fields: [work_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_assets_artworks")
+
+  @@unique([work_id, filename], map: "work_id_filename")
+  @@index([work_id], map: "FK_artwork_assets_artworks")
+}
+
+model collection_has_artworks {
+  collection_id Int         @db.UnsignedInt
+  work_id       Int         @db.UnsignedInt
+  created_at    DateTime    @default(now()) @db.DateTime(0)
+  collections   collections @relation(fields: [collection_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_collection_has_artworks_collections")
+  artworks      artworks    @relation(fields: [work_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_collection_has_artworks_artworks")
+
+  @@unique([collection_id, work_id], map: "collection_id_work_id")
+  @@index([work_id], map: "FK_collection_has_artworks_artworks")
+}
+
+model collections {
+  id                      Int                       @id @default(autoincrement()) @db.UnsignedInt
+  user_id                 Int                       @db.UnsignedInt
+  type                    collection_types          @default(artwork)
+  name                    String                    @db.VarChar(100)
+  description             String?                   @db.Text
+  is_public               Int                       @default(0) @db.UnsignedInt
+  is_editable             Int                       @default(1) @db.UnsignedInt
+  created_at              DateTime                  @default(now()) @db.DateTime(0)
+  last_save               DateTime                  @default(now()) @db.DateTime(0)
+  users                   users                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_collections_users")
+  collection_has_artworks collection_has_artworks[]
+
+  @@index([user_id], map: "FK_collections_users")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model artwork_comment_has_likes {
+  user_id           Int              @db.UnsignedInt
+  comment_id        Int              @db.UnsignedInt
+  is_notif_expanded Int              @default(0)
+  is_read           Int              @default(0)
+  is_cleared        Int              @default(0)
+  created_at        DateTime         @default(now()) @db.DateTime(0)
+  artwork_comments  artwork_comments @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_comment_has_likes_artwork_comments")
+  users             users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_comment_has_likes_users")
+
+  @@unique([user_id, comment_id], map: "user_id_comment_id")
+  @@index([comment_id], map: "FK_artwork_comment_has_likes_artwork_comments")
+}
+
+model artwork_comment_has_replies {
+  id                              Int                               @id @default(autoincrement()) @db.UnsignedInt
+  comment_id                      Int                               @db.UnsignedInt
+  user_id                         Int                               @db.UnsignedInt
+  content                         String                            @db.Text
+  is_notif_expanded               Int                               @default(0)
+  is_read                         Int                               @default(0)
+  is_cleared                      Int                               @default(0)
+  created_at                      DateTime                          @default(now()) @db.DateTime(0)
+  updated_at                      DateTime?                         @updatedAt @db.DateTime(0)
+  artwork_comments                artwork_comments                  @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_comment_has_replies_artwork_comments")
+  users                           users                             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_comment_has_replies_users")
+  artwork_comment_reply_has_likes artwork_comment_reply_has_likes[]
+
+  @@index([comment_id], map: "FK_artwork_comment_has_replies_artwork_comments")
+  @@index([user_id], map: "FK_artwork_comment_has_replies_users")
+}
+
+model artwork_comments {
+  id                          Int                           @id @default(autoincrement()) @db.UnsignedInt
+  work_id                     Int                           @db.UnsignedInt
+  user_id                     Int                           @db.UnsignedInt
+  comment                     String                        @db.Text
+  is_notif_expanded           Int                           @default(0)
+  is_read                     Int                           @default(0)
+  is_cleared                  Int                           @default(0)
+  created_at                  DateTime                      @default(now()) @db.DateTime(0)
+  updated_at                  DateTime?                     @updatedAt @db.DateTime(0)
+  users                       users                         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_comments_users")
+  artworks                    artworks                      @relation(fields: [work_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_comments_artworks")
+  artwork_comment_has_likes   artwork_comment_has_likes[]
+  artwork_comment_has_replies artwork_comment_has_replies[]
+
+  @@index([work_id], map: "FK_artwork_comments_artworks")
+  @@index([user_id], map: "FK_artwork_comments_users")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model artwork_has_tags {
+  work_id      Int          @db.UnsignedInt
+  tag_id       Int          @db.UnsignedInt
+  artwork_tags artwork_tags @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_has_tags_artwork_tags")
+  artworks     artworks     @relation(fields: [work_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_has_tags_artworks")
+
+  @@unique([tag_id, work_id])
+  @@index([tag_id], map: "FK_artwork_has_tags_artwork_tags")
+  @@index([work_id], map: "FK_artwork_has_tags_artworks")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model artwork_likes {
+  user_id           Int      @db.UnsignedInt
+  work_id           Int      @db.UnsignedInt
+  is_notif_expanded Int      @default(0)
+  is_read           Int      @default(0)
+  is_cleared        Int      @default(0)
+  created_at        DateTime @default(now()) @db.DateTime(0)
+  users             users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_likes_users")
+  artworks          artworks @relation(fields: [work_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_likes_artworks")
+
+  @@unique([user_id, work_id], map: "user_id_work_id")
+  @@index([work_id], map: "FK_artwork_likes_artworks")
+}
+
+model artwork_tags {
+  id               Int                @id @default(autoincrement()) @db.UnsignedInt
+  tag              String             @db.VarChar(20)
+  artwork_has_tags artwork_has_tags[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model artwork_views {
+  work_id  Int      @db.UnsignedInt
+  date     DateTime @db.Date
+  views    Int      @db.UnsignedInt
+  artworks artworks @relation(fields: [work_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_views_artworks")
+
+  @@unique([work_id, date], map: "work_id_date")
+  @@index([work_id], map: "FK_artwork_views_artworks")
+}
+
+model artwork_delete_later {
+  b2_file_id String @unique(map: "b2_file_id") @db.VarChar(100)
+  filename   String
+}
+
+model artworks {
+  id                      Int                       @id @default(autoincrement()) @db.UnsignedInt
+  user_id                 Int                       @db.UnsignedInt
+  title                   String                    @db.Text
+  description             String?                   @db.Text
+  is_explicit             Int                       @default(1)
+  scheduled_post          DateTime?                 @default(now()) @db.DateTime(0)
+  created_at              DateTime                  @default(now()) @db.DateTime(0)
+  updated_at              DateTime?                 @updatedAt @db.DateTime(0)
+  users                   users                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_posts_two_dimensions_users")
+  album_has_artworks      album_has_artworks[]
+  artwork_assets          artwork_assets[]
+  collection_has_artworks collection_has_artworks[]
+  artwork_comments        artwork_comments[]
+  artwork_has_tags        artwork_has_tags[]
+  artwork_likes           artwork_likes[]
+  artwork_views           artwork_views[]
+  feeds                   feeds[]
+
+  @@index([user_id], map: "FK_posts_two_dimensions_users")
+}
+
+model feed_has_files {
+  id                 String @id @unique(map: "id") @db.VarChar(23)
+  feed_id            Int    @db.UnsignedInt
+  file_server        String @db.VarChar(20)
+  file_path          String
+  file_prefixed_path String
+  filename           String
+  file_order         Int?
+  feeds              feeds  @relation(fields: [feed_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feed_has_pictures_feeds")
+
+  @@unique([file_server, file_path, file_prefixed_path, filename], map: "file_server_file_path_file_prefixed_path_filename")
+  @@index([feed_id], map: "FK_feed_has_pictures_feeds")
+}
+
+model feeds {
+  id             Int                 @id @default(autoincrement()) @db.UnsignedInt
+  user_id        Int                 @db.UnsignedInt
+  text           String?             @db.VarChar(300)
+  visibility     feeds_visibility    @default(public)
+  who_can_reply  feeds_who_can_reply @default(public)
+  work_id        Int?                @db.UnsignedInt
+  feed_id        Int?                @db.UnsignedInt
+  created_at     DateTime            @default(now()) @db.DateTime(0)
+  updated_at     DateTime?           @updatedAt @db.DateTime(0)
+  feeds          feeds?              @relation("feedsTofeeds_feed_id", fields: [feed_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feeds_feeds")
+  users          users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feeds_users")
+  artworks       artworks?           @relation(fields: [work_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feeds_artworks")
+  feed_has_files feed_has_files[]
+  feed_likes     feed_likes[]
+  feed_comments  feed_comments[]
+  other_feeds    feeds[]             @relation("feedsTofeeds_feed_id")
+
+  @@index([work_id], map: "FK_feeds_artworks")
+  @@index([feed_id], map: "FK_feeds_feeds")
+  @@index([user_id], map: "FK_feeds_users")
+}
+
+model feed_likes {
+  user_id           Int      @db.UnsignedInt
+  feed_id           Int      @db.UnsignedInt
+  is_notif_expanded Int      @default(0)
+  is_read           Int      @default(0)
+  is_cleared        Int      @default(0)
+  created_at        DateTime @default(now()) @db.DateTime(0)
+  feeds             feeds    @relation(fields: [feed_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feed_likes_feeds")
+  users             users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feed_likes_users")
+
+  @@unique([user_id, feed_id], map: "user_id_feed_id")
+  @@index([user_id], map: "FK_feed_likes_users")
+  @@index([feed_id], map: "FK_feed_likes_feeds")
+}
+
+model feed_comments {
+  id                       Int                        @id @default(autoincrement()) @db.UnsignedInt
+  feed_id                  Int                        @db.UnsignedInt
+  user_id                  Int                        @db.UnsignedInt
+  comment                  String                     @db.Text
+  is_notif_expanded        Int                        @default(0)
+  is_read                  Int                        @default(0)
+  is_cleared               Int                        @default(0)
+  created_at               DateTime                   @default(now()) @db.DateTime(0)
+  updated_at               DateTime?                  @updatedAt @db.DateTime(0)
+  feed_comment_has_likes   feed_comment_has_likes[]
+  feed_comment_has_replies feed_comment_has_replies[]
+  feeds                    feeds                      @relation(fields: [feed_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feed_comments_feed")
+  users                    users                      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feed_comments_users")
+
+  @@index([feed_id], map: "FK_feed_comments_feeds")
+  @@index([user_id], map: "FK_feed_comments_users")
+}
+
+model feed_comment_has_likes {
+  user_id           Int           @db.UnsignedInt
+  comment_id        Int           @db.UnsignedInt
+  is_notif_expanded Int           @default(0)
+  is_read           Int           @default(0)
+  is_cleared        Int           @default(0)
+  created_at        DateTime      @default(now()) @db.DateTime(0)
+  feed_comments     feed_comments @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feed_comment_has_likes_feed_comments")
+  users             users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feed_comment_has_likes_users")
+
+  @@unique([user_id, comment_id], map: "user_id_comment_id")
+  @@index([comment_id], map: "FK_feed_comment_has_likes_feed_comments")
+}
+
+model feed_comment_has_replies {
+  id                           Int                            @id @default(autoincrement()) @db.UnsignedInt
+  comment_id                   Int                            @db.UnsignedInt
+  user_id                      Int                            @db.UnsignedInt
+  content                      String                         @db.Text
+  is_notif_expanded            Int                            @default(0)
+  is_read                      Int                            @default(0)
+  is_cleared                   Int                            @default(0)
+  created_at                   DateTime                       @default(now()) @db.DateTime(0)
+  updated_at                   DateTime?                      @updatedAt @db.DateTime(0)
+  feed_comment_reply_has_likes feed_comment_reply_has_likes[]
+  feed_comments                feed_comments                  @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feed_comment_has_replies_feed_comments")
+  users                        users                          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feed_comment_has_replies_users")
+
+  @@index([comment_id], map: "FK_feed_comment_has_replies_feed_comments")
+  @@index([user_id], map: "FK_feed_comment_has_replies_users")
+}
+
+model feed_comment_reply_has_likes {
+  user_id                  Int                      @db.UnsignedInt
+  reply_id                 Int                      @db.UnsignedInt
+  is_notif_expanded        Int                      @default(0)
+  is_read                  Int                      @default(0)
+  is_cleared               Int                      @default(0)
+  created_at               DateTime                 @default(now()) @db.DateTime(0)
+  feed_comment_has_replies feed_comment_has_replies @relation(fields: [reply_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feed_comment_reply_has_likes_feed_comment_has_replies")
+  users                    users                    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_feed_comment_reply_has_likes_users")
+
+  @@unique([user_id, reply_id], map: "user_id_reply_id")
+  @@index([reply_id], map: "FK_feed_comment_reply_has_likes_feed_comment_has_replies")
+}
+
+model pro_transactions {
+  id           Int      @id @default(autoincrement()) @db.UnsignedInt
+  user_id      Int      @db.UnsignedInt
+  amount       Decimal  @default(0) @db.Decimal(3, 0)
+  payment_type String?  @db.VarChar(100)
+  created_at   DateTime @default(now()) @db.DateTime(0)
+}
+
+model settings {
+  setting_key String @id @unique(map: "key") @db.VarChar(200)
+  value       String @db.Text
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model user_follows {
+  user_id                                    Int      @db.UnsignedInt
+  followed_user_id                           Int      @db.UnsignedInt
+  is_notif_expanded                          Int      @default(0)
+  is_read                                    Int      @default(0)
+  is_cleared                                 Int      @default(0)
+  created_at                                 DateTime @default(now()) @db.DateTime(0)
+  users_user_follows_followed_user_idTousers users    @relation("user_follows_followed_user_idTousers", fields: [followed_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_user_follows_users_2")
+  users_user_follows_user_idTousers          users    @relation("user_follows_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_user_follows_users")
+
+  @@unique([user_id, followed_user_id], map: "user_id_followed_user_id")
+  @@index([user_id], map: "FK_user_follows_users")
+  @@index([followed_user_id], map: "FK_user_follows_users_2")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model user_passwords {
+  user_id    Int      @db.UnsignedInt
+  password   String   @db.VarChar(64)
+  created_at DateTime @default(now()) @db.DateTime(0)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "FK_user_passwords_users")
+
+  @@unique([user_id, password, created_at])
+  @@index([user_id], map: "FK_user_passwords_users")
+}
+
+model user_pro_subscriptions {
+  id         Int      @id @default(autoincrement()) @db.UnsignedInt
+  user_id    Int      @db.UnsignedInt
+  start_date DateTime @db.DateTime(0)
+  end_date   DateTime @db.DateTime(0)
+  created_at DateTime @default(now()) @db.DateTime(0)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_user_pro_subcriptions_users")
+
+  @@index([user_id], map: "FK_user_pro_subcriptions_users")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model user_settings {
+  user_id       Int    @id @db.UnsignedInt
+  language      String @default("en-US") @db.VarChar(10)
+  dark_mode     Int    @default(0)
+  show_explicit Int    @default(0)
+  users         users  @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "FK_user_settings_users")
+
+  @@index([user_id], map: "FK_user_setings_users")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model user_socials {
+  user_id   Int     @id @db.UnsignedInt
+  facebook  String? @db.VarChar(50)
+  instagram String? @db.VarChar(50)
+  patreon   String? @db.VarChar(50)
+  twitter   String? @db.VarChar(50)
+  youtube   String? @db.VarChar(50)
+  users     users   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_user_socials_users")
+}
+
+model users {
+  id                                                Int                               @id @default(autoincrement()) @db.UnsignedInt
+  username                                          String                            @unique(map: "username") @db.VarChar(12)
+  pen_name                                          String?                           @unique(map: "pen_name") @db.VarChar(50)
+  name                                              String                            @db.VarChar(100)
+  email                                             String                            @db.VarChar(50)
+  email_verified                                    users_email_verified              @default(zero)
+  gender                                            users_gender                      @default(m)
+  avatar_driver                                     String?                           @default("backblaze")
+  avatar_bucket                                     String?
+  avatar_b2_file_id                                 String?                           @db.VarChar(100)
+  avatar_filename                                   String?
+  cover_driver                                      String?                           @default("backblaze")
+  cover_bucket                                      String?
+  cover_b2_file_id                                  String?                           @db.VarChar(100)
+  cover_filename                                    String?
+  bio                                               String?                           @db.Text
+  location                                          String?                           @db.VarChar(100)
+  created_at                                        DateTime                          @default(now()) @db.DateTime(0)
+  albums                                            albums[]
+  collections                                       collections[]
+  artwork_comment_has_likes                         artwork_comment_has_likes[]
+  artwork_comment_has_replies                       artwork_comment_has_replies[]
+  artwork_comment_reply_has_likes                   artwork_comment_reply_has_likes[]
+  artwork_comments                                  artwork_comments[]
+  artwork_likes                                     artwork_likes[]
+  artworks                                          artworks[]
+  feeds                                             feeds[]
+  user_follows_user_follows_followed_user_idTousers user_follows[]                    @relation("user_follows_followed_user_idTousers")
+  user_follows_user_follows_user_idTousers          user_follows[]                    @relation("user_follows_user_idTousers")
+  user_passwords                                    user_passwords[]
+  user_pro_subscriptions                            user_pro_subscriptions[]
+  user_settings                                     user_settings?
+  user_socials                                      user_socials?
+  feed_comments                                     feed_comments[]
+  feed_likes                                        feed_likes[]
+  feed_comment_has_likes                            feed_comment_has_likes[]
+  feed_comment_has_replies                          feed_comment_has_replies[]
+  feed_comment_reply_has_likes                      feed_comment_reply_has_likes[]
+}
+
+model artwork_comment_reply_has_likes {
+  user_id                     Int                         @db.UnsignedInt
+  reply_id                    Int                         @db.UnsignedInt
+  is_notif_expanded           Int                         @default(0)
+  is_read                     Int                         @default(0)
+  is_cleared                  Int                         @default(0)
+  created_at                  DateTime                    @default(now()) @db.DateTime(0)
+  artwork_comment_has_replies artwork_comment_has_replies @relation(fields: [reply_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_comment_reply_has_likes_artwork_comment_has_replies")
+  users                       users                       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_artwork_comment_reply_has_likes_users")
+
+  feed_comment_has_repliesId Int? @db.UnsignedInt
+  @@unique([user_id, reply_id], map: "user_id_reply_id")
+  @@index([reply_id], map: "FK_artwork_comment_reply_has_likes_artwork_comment_has_replies")
+}
+
+enum feeds_visibility {
+  public
+  followers
+}
+
+enum feeds_who_can_reply {
+  public
+  followers
+}
+
+enum users_email_verified {
+  zero  @map("0")
+  one   @map("1")
+}
+
+enum users_gender {
+  m
+  f
+}
+
+enum collection_types {
+  artwork
+  comic
+  tutorial
+}
+
+enum album_types {
+  artwork
+  comic
+  tutorial
+}
