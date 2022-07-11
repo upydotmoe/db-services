@@ -21,8 +21,8 @@ services:
     ports:
       - 27017:27017
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: 98pyfCw24ZgCWZm4
+      MONGO_INITDB_ROOT_USERNAME: upy
+      MONGO_INITDB_ROOT_PASSWORD: tf4CcEuN3dENXLgs
       MONGO_INITDB_DATABASE: upy
     volumes:
       - ./mongo/bin/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
