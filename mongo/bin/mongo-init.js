@@ -1,3 +1,4 @@
+use admin
 db.createUser({
   user: 'upy',
   pwd: 'tf4CcEuN3dENXLgs',
