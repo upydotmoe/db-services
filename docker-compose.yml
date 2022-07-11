@@ -4,10 +4,10 @@ services:
   maria:
     container_name: upy-maria
     image: mariadb:latest
-    restart: 'no'
+    restart: "no"
     command: --default-authentication-plugin=mysql_native_password
     ports:
-      - "3306:3306"
+      - 3306:3306
     environment:
       MARIADB_ROOT_PASSWORD: 98pyfCw24ZgCWZm4
       MARIADB_USER: upy
@@ -17,8 +17,9 @@ services:
   mongo:
     container_name: upy-mongo
     image: mongo:latest
+    restart: "no"
     ports:
-      - "27017:27017"
+      - 27017:27017
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: 98pyfCw24ZgCWZm4
