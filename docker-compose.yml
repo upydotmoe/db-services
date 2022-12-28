@@ -61,3 +61,4 @@ services:
 networks:
   upy-network:
     driver: bridge
+    external: true
