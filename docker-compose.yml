@@ -40,7 +40,7 @@ services:
 
   redis:
     container_name: dbs_redis
-    image: redis:alpine
+    image: redis:6.0-alpine
     restart: always
     healthcheck:
       test: "env | grep SHELL_SESSION_ID"
