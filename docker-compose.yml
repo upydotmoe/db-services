@@ -42,19 +42,22 @@ services:
     container_name: dbs_redis
     image: redis:6.0-alpine
     restart: always
-    healthcheck:
-      test: "env | grep SHELL_SESSION_ID"
-      interval: 60s
-      timeout: 30s
-      retries: 3
-      start_period: 15s
+    ports:
+      - 6379:6379
     env_file: .env
     command:
       - /bin/sh
       - -c
-      - redis-server --requirepass ${REDIS_PASSWORD}
-    ports:
-      - 6379:6379
+      - redis-server --requirepass ${REDIS_PASSWORD} --maxmemory-policy allkeys-lru --maxmemory 2G
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a ${REDIS_PASSWORD} ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
     networks:
       - upy-network
 
